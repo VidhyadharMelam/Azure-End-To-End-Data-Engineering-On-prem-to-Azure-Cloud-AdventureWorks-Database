@@ -1,0 +1,141 @@
+Data Transformation:
+
+	Provides a detailed breakdown of the data transformations applied across the Bronze, Silver, and Gold Layers in the AdventureWorksLT2017 dataset.
+
+	1️ Bronze Layer: Raw Data Ingestion
+
+		Purpose:
+
+			Store raw data as-is from the On-Prem SQL Server database into Azure Data Lake Storage Gen2 (ADLS Gen2) in Parquet format.
+
+			Maintain the original schema for data lineage and auditing.
+
+			Transformations in Bronze Layer:
+
+			✅ No transformations applied in this layer. The data is stored in its native form to ensure immutability and traceability.
+
+	2️ Silver Layer: Cleansed and Transformed Data
+
+		Purpose:
+
+			Perform initial cleaning and structuring to make the data ready for analytical consumption.
+
+			Apply column standardization, type conversions, and enrichment for better usability.
+
+			Store the transformed data in Delta format for faster queries and reliability.
+
+			Transformations Applied in Silver Layer:
+
+				1. General Data Cleaning for All Tables
+				✅ Drop unnecessary columns that are not required for business analysis.
+				✅ Rename columns for better readability and business understanding.
+				✅ Modify date columns to a standard format (YYYY-MM-DD).
+				✅ Convert data types (e.g., string to integer, integer to decimal).
+				✅ Handle NULL values by replacing them with "Unknown" or default values.
+				✅ Extract relevant columns required for further processing.
+
+
+	2. Table-Specific Transformations
+
+		➤ Customer Data (Silver.Customer)
+			
+			Remove PII data like phone numbers (if applicable).
+
+			Standardize naming conventions for customers.
+
+			Replace NULL values in CompanyName with "Individual".
+
+		➤ Address Data (Silver.Address)
+
+			Standardize address formatting.
+
+			Extract city, state, and postal code into separate columns for better analysis.
+
+			Remove duplicates.
+
+		➤ Product Data (Silver.Product, Silver.ProductCategory, Silver.ProductModel)
+
+			Categorize products by category name.
+
+			Remove unnecessary columns such as internal system tracking fields.
+
+			Standardize product descriptions.
+
+
+		➤ Sales Data (Silver.SalesOrderHeader, Silver.SalesOrderDetail)
+
+			Convert all monetary values to a consistent currency format.
+
+			Standardize order status values.
+
+			Extract order date, due date, and ship date from timestamp format.
+
+	
+	3️ Gold Layer: Analytical & Reporting Data
+
+		Purpose:
+
+			Denormalize and aggregate data for faster analytical queries.
+
+			Create Fact and Dimension tables following the Star Schema.
+
+			Ensure optimized storage and performance for BI reporting in Power BI.
+
+			Transformations Applied in Gold Layer:
+
+				1. Dimension Tables (Denormalized)
+				➤ DimCustomer
+				✅ Join Silver.Customer, Silver.CustomerAddress, and Silver.Address to create a single, enriched customer table.
+				✅ Generate Surrogate Keys (CustomerSK) to replace the natural CustomerID for optimized joins.
+				✅ Format date columns to ensure consistency.
+				✅ Fill missing values (e.g., unknown addresses) with "Unknown".
+				✅ Drop unnecessary columns (e.g., technical IDs that are not needed for analysis).
+				✅ Standardize city and state names to ensure uniformity.
+
+
+		➤ DimProduct
+
+			✅ Join Silver.Product, Silver.ProductCategory, and Silver.ProductModel to create a single product dimension table.
+			✅ Generate Surrogate Keys (ProductSK) to replace ProductID for optimized joins.
+			✅ Drop redundant columns that are no longer needed.
+			✅ Standardize category names for better reporting.
+			✅ Fill missing values in product descriptions with "No Description Available".
+
+	
+	2. Fact Tables (Transactional & Aggregated Data)
+
+		➤ FactSales
+
+			✅ Join Silver.SalesOrderHeader and Silver.SalesOrderDetail to create a fully detailed sales transaction table.
+			✅ Ensure Referential Integrity by using CustomerSK and ProductSK from Dimension tables.
+			✅ Convert all date fields (OrderDate, DueDate, ShipDate) into standardized date formats.
+			✅ Standardize monetary values for revenue calculations.
+			✅ Drop unnecessary columns such as administrative or internal tracking fields.
+
+		➤ FactSalesAggregation
+
+			✅ Load data from FactSales and aggregate sales at customer and product levels.
+			✅ Calculate total sales per customer and per product.
+			✅ Compute the total number of orders per customer and per product.
+			✅ Generate an "Average Sales per Order" metric for further insights.
+			✅ Optimize data for querying by partitioning data on OrderDate for improved performance.
+
+
+
+🔹 Final Gold Layer Schema
+
+Table Name		Type		Description
+DimCustomer		Dimension	Enriched customer data with address details
+DimProduct		Dimension	Enriched product data with category information
+FactSales		Fact Table	Detailed sales transactions
+FactSalesAgg		Fact Table	Aggregated sales insights for reporting
+
+
+Key Takeaways:
+
+	Bronze Layer: Raw data storage without transformations.
+
+	Silver Layer: Initial transformations like data cleansing, formatting, and restructuring.
+
+	Gold Layer: Denormalized and optimized data for analytical queries in Star Schema format.
+
