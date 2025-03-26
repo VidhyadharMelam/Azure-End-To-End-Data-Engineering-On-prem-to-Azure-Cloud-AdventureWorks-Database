@@ -1,0 +1,173 @@
+1. Project Overview:
+
+Business Problem:
+
+	Organizations rely on structured and well-managed data pipelines to enable effective decision-making and analytics. AdventureWorksLT2017, a sample retail 	database, contains sales, customer, and product-related data stored in an on-premises SQL Server. However, to derive business insights efficiently, the data 	must be:
+
+	1- Ingested into a cloud-based data lake
+
+	2- Processed and cleaned for better structure
+
+	3- Modeled into a star schema for optimized querying
+
+	4- Made available for reporting using Power BI
+
+Solution:
+
+	To solve this, I built a dynamic parameterized data pipeline that automates the end-to-end data flow from an on-prem SQL Server database to Azure Data Lake, 	Azure Databricks, and Azure Synapse Analytics, finally connecting to Power BI for business intelligence.
+
+
+2. Tech Stack & Tools:
+
+	Component				Tool/Technology Used
+					
+	Data Source				On-prem SQL Server
+	Data Ingestion				Azure Data Factory (ADF)
+	Data Storage				Azure Data Lake Gen2 (ADLS Gen2)
+	Data Processing				Azure Databricks (PySpark, Delta Lake)
+	Data Modeling				Star Schema (Fact & Dimension Tables)
+	Data Warehousing			Azure Synapse Analytics (Serverless SQL)
+	Data Visualization			Power BI
+	Orchestration & Automation		Azure Data Factory (Daily Trigger at 8 AM)
+
+
+3. Data Flow & Architecture:
+
+Step-by-Step Data Flow
+
+1 - Data Extraction
+
+	Data is stored in on-prem SQL Server.
+
+	ADF pipelines use Lookup, ForEach, and Copy Data Activities to extract the data.
+
+	Data is loaded in ADLS Gen2 Bronze Layer in Parquet format.
+
+
+	Silver Layer: Data Transformation in Databricks
+
+		The Bronze Layer data is fetched into Azure Databricks using Service Principal Authentication.
+
+		PySpark transformations applied:
+
+		Date Formatting
+
+		Column Renaming for better business understanding
+
+		Combining Columns (e.g., concatenating first name & last name)
+
+		Dropping Unnecessary Columns
+
+		Handling Nulls & Missing Values (Filling NA with "Unknown")
+
+		The transformed data is stored in Delta format in the Silver Layer.
+
+
+	Gold Layer: Fact & Dimension Tables (Star Schema)
+
+		Data from Silver Layer is further transformed to create Fact & Dimension tables:
+
+		DimCustomer → From Customer, CustomerAddress, Address
+
+		DimProduct → From Product, ProductCategory, ProductModel
+
+		FactSales → From SalesOrderHeader, SalesOrderDetail
+
+		FactSalesAggregation → Aggregated sales data for reporting
+
+
+	Gold Layer transformations include:
+
+		Joining tables to create denormalized Fact & Dimension tables
+
+		Generating Surrogate Keys for DimCustomer and DimProduct
+
+		Handling Nulls & Missing Data
+
+		Optimizing tables for better query performance
+
+		The final Gold Layer tables are stored in Delta format in ADLS Gen2.
+
+
+	Azure Synapse Analytics & Power BI
+
+		Gold Layer data is loaded into Azure Synapse Analytics (serverless SQL database - gold_db).
+
+		Views are created for easy Power BI connectivity.
+
+		Power BI connects to Synapse, providing real-time insights.
+
+
+Automation & Orchestration:
+
+	ADF Pipeline Triggers ensure daily updates at 8 AM.
+
+	Any new records added in SQL Server automatically pass through the pipeline and reflect in Power BI.
+
+
+4. Data Modeling: Star Schema in Gold Layer:
+
+	Tables in Each Layer
+		Bronze Layer (Raw Data) - Parquet Format
+
+			Address
+			Customer
+			CustomerAddress
+			Product
+			ProductCategory
+			ProductDescription
+			ProductModel
+			ProductModelProductDescription
+			SalesOrderDetail
+			SalesOrderHeader
+
+
+	Silver Layer (Cleaned & Transformed Data) - Delta Format
+	Same as Bronze Layer, but with cleaned data, formatted columns, and removed unnecessary fields.
+
+
+	Gold Layer (Fact & Dimension Tables) - Delta Format
+		
+		Table Name		Type		Source Tables
+		DimCustomer		Dimension	Customer, CustomerAddress, Address
+		DimProduct		Dimension	Product, ProductCategory, ProductModel
+		FactSales		Fact		SalesOrderHeader, SalesOrderDetail
+		FactSalesAggregation	Fact		Aggregated sales data
+
+
+5. Key PySpark Transformations in Each Layer:
+
+
+6. Pipeline Flow:
+
+	Extract from SQL Server → ADLS Gen2 (Bronze Layer)
+
+	Transform in Azure Databricks → Silver Layer
+
+	Load into Gold Layer (Fact & Dimension Tables)
+
+	Load into Azure Synapse Analytics (gold_db)
+
+	Power BI reports update automatically
+
+
+7. Results & Business Impact:
+
+	Fully automated ETL pipeline ensuring daily refresh
+
+	Near real-time reporting in Power BI
+
+	Improved data quality with clean, structured data
+
+	Optimized queries for faster analytics
+
+
+Key Components
+		Layer			Technology			Format			Purpose
+		Source			On-Prem SQL Server		SQL Tables		Raw operational data
+		Bronze			ADLS Gen2			Parquet	Raw, 		immutable copy
+		Silver			Databricks + ADLS Gen2		Delta			Cleaned, validated data
+		Gold			Databricks + ADLS Gen2		Delta			Business-ready dimensions/facts
+		Analytics		Synapse Serverless SQL		Views			SQL query layer for Power BI
+		Orchestration		Azure Data Factory		Pipeline		Automated ETL scheduling
+		Reporting		Power BI			Dashboard		Business insights
