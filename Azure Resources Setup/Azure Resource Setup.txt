@@ -1,0 +1,256 @@
+Azure Resources Setup for AdventureWorksLT2017 Data Pipeline:
+
+1. Overview
+
+Step-by-step process to set up all the necessary Azure resources required for the end-to-end data pipeline.
+
+Azure Services Used:
+	✅ Azure SQL Server & Database (On-prem SQL Server source)
+	✅ Azure Data Lake Storage Gen2 (ADLS Gen2) (For Bronze, Silver, and Gold layers)
+	✅ Azure Data Factory (ADF) (For orchestrating ETL workflows)
+	✅ Azure Databricks (For data transformations)
+	✅ Azure Synapse Analytics (For reporting and querying)
+	✅ Azure Key Vault (For secure storage of credentials)
+
+2. Azure Resource Creation Guide
+
+	2.1 Setting up Azure SQL Server & Database
+		
+		Step 1: Create an Azure SQL Server
+		Sign in to Azure Portal.
+
+		Go to SQL Servers → Click Create.
+
+		Fill in the details:
+
+		Subscription: Select your Azure subscription.
+
+		Resource Group: Create a new one or use an existing one.
+
+		Server Name: adventureworks-sqlserver
+
+		Region: Select your preferred region.
+
+		Authentication method: SQL Authentication
+
+		Admin Username & Password: Set credentials for admin access.
+
+		Click Review + Create → Click Create.
+
+
+	Step 2: Create an Azure SQL Database
+
+		Navigate to Azure SQL → Click Create a Database.
+
+		Choose the SQL Server created in Step 1.
+
+		Database Name: adventureworks_db
+
+		Choose the pricing tier (Basic, Standard, Premium) based on workload.
+
+		Click Review + Create → Click Create.
+
+	Step 3: Configure Firewall for External Access
+
+		Go to Azure SQL Server → Networking → Firewall Rules.
+
+		Add a new rule:
+
+		Rule Name: AllowClientIP
+
+		Start IP & End IP: Your public IP address
+
+		Click Save.
+
+	
+	Step 4: Enable Azure AD Authentication (Optional but Recommended)
+
+		Go to Azure SQL Server → Active Directory Admin.
+
+		Set an Azure AD Admin.
+
+		Click Save.
+
+
+	2.2 Setting up Azure Data Lake Storage Gen2 (ADLS Gen2)
+
+	Step 1: Create a Storage Account
+
+		Go to Azure Portal → Search for Storage Accounts → Click Create.
+
+		Fill in the details:
+
+		Subscription: Select your subscription.
+
+		Resource Group: Choose the same as SQL Server.
+
+		Storage Account Name: adventureworksdatalake
+
+		Region: Select the same as SQL Server.
+
+		Performance: Standard
+
+		Redundancy: Locally Redundant Storage (LRS)
+
+		Enable Hierarchical Namespace: ✅ (Important for ADLS Gen2)
+
+		Click Review + Create → Click Create.
+
+
+	Step 2: Create Containers for Data Storage
+
+		Navigate to the Storage Account → Containers.
+
+		Create the following containers:
+
+			Bronze → Raw data (bronze)
+
+			Silver → Cleaned data (silver)
+
+			Gold → Final processed data (gold)
+
+
+	Step 3: Set Access Permissions
+
+		Go to Storage Account → Access Control (IAM).
+
+		Add role assignments:
+		
+		Storage Blob Data Contributor → Assign to your Azure Data Factory & Databricks service principal.
+
+		Click Save.
+
+
+	2.3 Setting up Azure Data Factory (ADF)
+
+		Step 1: Create an Azure Data Factory
+
+		Go to Azure Portal → Search for Data Factory → Click Create.
+
+		Fill in the details:
+
+		Subscription: Select your subscription.
+
+		Resource Group: Choose the same as previous resources.
+
+		Region: Select the same region.
+
+		ADF Name: adventureworks-adf
+
+		Click Review + Create → Click Create.
+
+
+	Step 2: Configure Linked Services in ADF
+
+		Open Azure Data Factory Studio.
+
+		Navigate to Manage → Linked Services → New.
+
+		Create Linked Service for Azure SQL Database:
+
+		Type: Azure SQL Database
+
+		Connect using: Service Principal / SQL Authentication
+
+		Enter SQL Server & Database details
+
+		Create Linked Service for ADLS Gen2:
+
+		Type: Azure Data Lake Storage Gen2
+
+		Connect using: Managed Identity / Service Principal
+
+		Enter Storage Account details
+
+		Click Test Connection → Click Save.
+
+
+	Step 3: Create Data Pipeline
+
+		Go to Author → Create Pipeline.
+
+		Add Copy Data Activity (For SQL → ADLS Gen2 Bronze).
+
+		Add Databricks Notebook Activity (For Bronze → Silver, Silver → Gold).
+
+		Configure Triggers for daily ingestion (8 AM).
+
+
+	2.4 Setting up Azure Databricks
+
+		Step 1: Create a Databricks Workspace
+
+		Go to Azure Portal → Search for Databricks → Click Create.
+
+		Fill in the details:
+
+		Workspace Name: adventureworks-databricks
+
+		Region: Same as other resources
+
+		Click Review + Create → Click Create.
+
+
+	Step 2: Create a Cluster
+
+		Open Azure Databricks Workspace.
+
+		Go to Clusters → Create Cluster.
+
+		Set configurations:
+
+			Cluster Mode: Single Node / Standard
+
+			Databricks Runtime Version: Latest
+
+			Enable Auto Termination: Yes
+
+			Click Create Cluster.
+
+
+	Step 3: Set up Service Principal for Databricks to Access ADLS Gen2
+
+		In Databricks, go to Admin Console → Access Control.
+
+		Add Service Principal with Storage Blob Data Contributor access to ADLS Gen2.
+
+		Save & Restart Cluster.
+
+
+	2.5 Setting up Azure Synapse Analytics
+
+		Step 1: Create a Synapse Workspace
+
+		Go to Azure Portal → Search for Synapse Analytics → Click Create.
+
+		Fill in the details:
+
+		Workspace Name: adventureworks-synapse
+
+		Region: Same as other resources
+
+		Click Review + Create → Click Create.
+
+	
+	Step 2: Create Serverless SQL Database for Reporting
+
+		Open Azure Synapse Studio.
+
+		Go to Manage → SQL Pools → Create Serverless Pool.
+
+		Database Name: gold_db
+
+		Click Create.
+
+	
+	Step 3: Create Views for Gold Layer Tables
+
+
+3. Summary
+
+		Azure Resource						Purpose
+		SQL Server & Database					Stores raw on-prem SQL Server data
+		ADLS Gen2						Stores Bronze, Silver, Gold layer data
+		Data Factory (ADF)					Orchestrates data movement & transformations
+		Databricks						Performs data transformations
+		Synapse Analytics					Queries & reports Gold Layer data
