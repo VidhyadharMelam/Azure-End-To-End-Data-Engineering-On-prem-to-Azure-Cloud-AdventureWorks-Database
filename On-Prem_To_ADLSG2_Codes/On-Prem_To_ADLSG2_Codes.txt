@@ -1,0 +1,58 @@
+1- LookUp Activity: Name : Look For All Tables
+
+First Row Only : Uncheck
+Use Query: Query
+
+	SELECT
+	s.name AS SchemaName,
+	t.name AS TableName
+	FROM sys.tables t
+	INNER JOIN sys.schemas s
+	ON t.schema_id = s.schema_id
+	WHERE s.name = 'SalesLT'
+
+Now you can see all the tables starting with SalesLT, which is in your SSMS.
+Debug
+
+
+2- ForEach Activity: Name : For Each Schema Table
+
+items: Add dynamic content > select "Look For All Tables"
+	
+	@activity('Look For All Tables').output.value
+
+
+3- Copy Data Activity: Name : Copy All Tables
+
+Source > Use Query : Query > Add dynamic content 
+
+	@{concat('SELECT * FROM ', item().SchemaName, '.', item().TableName)}
+
+Sink > sink dataset > open > parameters 
+	name : schemaname
+	name : tablename
+go to Copy All Tables Activity > 
+	schemaname : Add dynamic content
+	@item().SchemaName
+	
+	tablename : Add dynamic content
+	@item().TableName
+
+go to sink > sink dataset > open > connections > Directory > Add dynamic content
+
+	@{concat(dataset().schemaname, '/',dataset().tablename)}
+
+		File Name > Add dynamic content
+
+	@{concat(dataset().tablename,'.parquet')}
+
+
+> Now cut the "Copy All Table" Activity and paste it inside "ForEach" Activity
+> Connect "Look Up" Activity with "ForEach" Activity - on-success
+
+> Publish All
+> Add Trigger > Trigger Now
+> Go to Monitor Tab and check the status
+
+> VALIDATE: go to bronxe layer and validate your data.
+
