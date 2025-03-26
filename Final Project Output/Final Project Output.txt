@@ -1,0 +1,113 @@
+Final Project Output - AdventureWorksLT2017:
+
+
+	Provides an end-to-end summary of the Azure-based Data Engineering Pipeline for the AdventureWorksLT2017 dataset. It outlines the entire data flow, key 	transformations, and final reporting.
+
+	1. Project Overview
+
+		Business Problem: Transform and analyze AdventureWorksLT2017 sales data for optimized reporting.
+
+		Solution: Implement a Medallion Architecture (Bronze → Silver → Gold) for efficient data ingestion, transformation, and reporting.
+
+		Tools Used:
+
+			Azure Services: Data Factory, Data Lake Storage Gen2, Synapse Analytics, Key Vault
+
+			Processing: Databricks (PySpark)
+
+			Reporting: Power BI
+
+	2. Data Pipeline Overview
+
+		The pipeline consists of three main layers:
+
+			Layer			Storage Format			Purpose
+			Bronze			Parquet				Stores raw ingested data from on-prem SQL Server
+			Silver			Delta				Cleansed and transformed data with better business understanding
+			Gold			Delta				Final fact and dimension tables for reporting (Star Schema)
+
+	3. Data Flow
+
+
+		1 Data Ingestion (Bronze Layer)
+
+			Source: On-prem SQL Server Database (AdventureWorksLT2017)
+
+			Process: Data Factory pulls data into Azure Data Lake Gen2.
+
+			ADF Activities Used: Lookup, ForEach, Copy Data
+
+			Storage Format: Parquet
+
+
+		2️ Data Transformation (Silver Layer)
+
+			Processing Engine: Databricks (PySpark)
+
+			Key Transformations:
+
+				Renamed columns for business clarity
+
+				Modified date formats
+
+				Combined columns for better insights
+
+				Dropped unnecessary columns
+
+				Filled missing values with "Unknown"
+
+				Stored transformed data in Delta format
+
+
+		3️ Data Modeling & Aggregation (Gold Layer)
+
+			Star Schema implemented for analytical performance.
+
+			Dimension Tables: DimCustomer, DimProduct
+
+			Fact Tables: FactSales, FactSalesAggregation
+
+			Transformations Applied:
+
+				Joins to create denormalized tables
+
+				Surrogate keys for dimension tables
+
+				Data formatting & aggregations for facts
+
+				Optimization for fast queries
+
+
+		4️ Data Warehouse & Reporting
+
+			Azure Synapse Analytics:
+
+			Gold Layer tables are loaded into serverless SQL database (gold_db).
+
+			Views created for Power BI consumption.
+
+			Power BI Dashboard:
+
+				Connected to Synapse Views
+
+				Key Metrics: Total Sales, Top Customers, Revenue Trends
+
+				Visualizations: Sales Trends, Product Performance, Geographic Insights
+
+		4. Key Metrics & Performance
+			
+			✅ Pipeline Efficiency
+	
+			Incremental Load Execution: Every 8 AM Daily
+
+			Automated Trigger: Ensures up-to-date insights
+
+
+
+	 5. Summary & Final Output
+
+		✅ Fully automated data pipeline from on-prem SQL Server → Azure Data Lake → Databricks → Synapse → Power BI.
+		✅ Incremental loading & scheduling ensure real-time insights.
+		✅ Optimized reporting with Fact-Dimension model (Star Schema).
+		✅ Power BI dashboards for business decision-making.
+
