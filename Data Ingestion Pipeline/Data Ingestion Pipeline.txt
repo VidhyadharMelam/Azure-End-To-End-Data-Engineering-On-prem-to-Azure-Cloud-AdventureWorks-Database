@@ -1,0 +1,127 @@
+1. Introduction:
+
+	The Data Ingestion Pipeline is responsible for extracting, transforming, and loading data through multiple layers in the Medallion Architecture (Bronze → 	Silver → Gold). This ensures that raw data is ingested, cleaned, and optimized for analytics.
+
+Automation:
+
+	The Azure Data Factory (ADF) pipeline orchestrates the entire ingestion process.
+
+	It first moves data from On-Prem SQL Server → ADLS Gen2 (Bronze).
+
+	Then, it triggers Databricks Notebooks to process data from Bronze → Silver → Gold.
+
+2. Data Ingestion Flow:
+
+	Bronze Layer: Raw Data Storage
+
+		Extracts data from: On-Prem SQL Server
+
+		Storage: ADLS Gen2 (Parquet format)
+
+		Transformations: None (Stores data as-is)
+
+		Triggered By: ADF Pipeline (Copy Data Activity)
+
+
+	Silver Layer: Cleaned & Transformed Data
+
+		Extracts data from: Bronze Layer (ADLS Gen2)
+
+		Storage: ADLS Gen2 (Delta format)
+
+		Transformations in Databricks:
+
+			Rename columns for business clarity
+
+			Drop unnecessary columns
+
+			Modify date formats
+
+			Fill NULL values
+
+			Combine relevant columns
+
+			Triggered By: ADF (Databricks Notebook Execution)
+
+
+	Gold Layer: Optimized Data for Analytics
+
+		Extracts data from: Silver Layer (ADLS Gen2)
+
+		Storage: ADLS Gen2 (Delta format) & Synapse Analytics (SQL Views)
+
+		Transformations in Databricks:
+
+			Create Dimension Tables (DimCustomer, DimProduct, etc.)
+
+			Create Fact Tables (FactSales, FactSalesAggregation)
+
+			Generate Surrogate Keys
+
+			Join tables for denormalization
+
+			Optimize for query performance
+
+			Triggered By: ADF (Databricks Notebook Execution)
+
+
+3. Azure Data Factory Pipeline Components
+
+	Pipeline Name: OnPrem_to_ADLS_Gold_Pipeline
+
+		Activity						Purpose
+		Lookup Activity						Retrieves list of tables from SQL Server
+		ForEach Activity					Iterates through each table
+		Copy Data Activity					Copies data from SQL Server to ADLS Gen2 (Bronze)
+		Databricks Notebook Activity (Bronze → Silver)		Executes Databricks notebook to process raw data
+		Databricks Notebook Activity (Silver → Gold)		Executes Databricks notebook to process transformed data
+
+
+4. Detailed ADF Pipeline Breakdown
+
+	(1) Bronze Layer - Raw Data Ingestion
+	Source: On-Prem SQL Server
+
+		Destination: ADLS Gen2 (Bronze)
+
+		Storage Format: Parquet
+
+
+	(2) Silver Layer - Data Cleaning & Standardization
+	Executed By: Databricks Notebook (Triggered by ADF Copy Data Activity)
+
+		Source: Bronze Layer (ADLS Gen2)
+
+		Destination: Silver Layer (ADLS Gen2 - Delta Format)
+
+		
+	(3) Gold Layer - Fact & Dimension Table Creation
+	Executed By: Databricks Notebook (Triggered by ADF Copy Data Activity)
+
+		Source: Silver Layer (ADLS Gen2 - Delta Format)
+
+		Destination: Gold Layer (ADLS Gen2 - Delta Format) & Azure Synapse Analytics
+
+
+5. Final Data Storage Summary
+
+		Layer		Storage					Format			Tables Stored
+		Bronze		ADLS Gen2				Parquet			All 10 tables (Raw Data)
+		Silver		ADLS Gen2				Delta			Transformed tables with business-friendly columns
+		Gold		ADLS Gen2 & Synapse Analytics		Delta & SQL Views	Dimension & Fact tables optimized for reporting
+
+
+6. Automation & Scheduling
+
+		ADF Pipeline orchestrates end-to-end ingestion.
+		Triggers Databricks Notebooks for Bronze → Silver → Gold transformations.
+		Scheduled daily at 8 AM for incremental ingestion.
+
+7. Conclusion
+
+This automated data pipeline follows the Medallion Architecture, ensuring:
+
+		Efficient data ingestion from SQL Server → ADLS Gen2
+		Cleansed, structured, and optimized data at each layer
+		Gold layer ready for reporting & business intelligence in Power BI
+
