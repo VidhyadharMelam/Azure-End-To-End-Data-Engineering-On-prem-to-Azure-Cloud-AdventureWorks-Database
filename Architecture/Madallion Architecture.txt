@@ -1,0 +1,139 @@
+1. The Medallion Architecture is a layered approach to organizing data in a lakehouse. It consists of three main layers:
+
+	Bronze Layer (Raw Data) – Stores unprocessed data as ingested from the source.
+
+	Silver Layer (Cleaned & Transformed Data) – Applies transformations and structuring.
+
+	Gold Layer (Aggregated & Modeled Data) – Optimized for reporting and analytics.
+
+
+Architecture Diagram: 
+
+
+
+		       ┌────────────────────┐
+       │ On-Prem SQL Server │
+       └────────┬───────────┘
+                │
+        ┌──────▼──────┐
+        │ Bronze Layer │   (Raw Data in ADLS Gen2 - Parquet)
+        └──────┬──────┘
+                │
+        ┌──────▼──────┐
+        │ Silver Layer │   (Cleaned & Structured Data in Delta)
+        └──────┬──────┘
+                │
+        ┌──────▼──────┐
+        │  Gold Layer  │   (Fact & Dimension Tables in Delta)
+        └──────┬──────┘
+                │
+        ┌──────▼──────┐
+        │ Synapse SQL │   (gold_db for Power BI)
+        └──────┬──────┘
+                │
+        ┌──────▼──────┐
+        │  Power BI   │   (Dashboards & Reports)
+        └─────────────┘
+
+2. Data Flow in Medallion Architecture:
+
+	Step 1: Bronze Layer (Raw Data)
+
+		Purpose: Store raw, unprocessed data from on-prem SQL Server.
+
+		Format: Parquet (efficient for storage & retrieval).
+
+	Key Activities:
+
+		Ingest data from SQL Server using ADF (Lookup, ForEach, Copy Data activities).
+
+		Store raw data in ADLS Gen2 with minimal transformations.
+
+		Maintain historical records for auditing and reprocessing.
+
+	Bronze Layer Tables (Raw Data)
+
+		Table Name
+		Address
+		Customer
+		CustomerAddress
+		Product
+		ProductCategory
+		ProductDescription
+		ProductModel
+		ProductModelProductDescription
+		SalesOrderDetail
+		SalesOrderHeader
+
+	Step 2: Silver Layer (Transformed & Cleaned Data)
+
+		Purpose: Clean, standardize, and structure data.
+
+		Format: Delta Format (Optimized for transactions & analytics).
+
+	Key Activities:
+
+		Remove duplicates & inconsistent records.
+
+		Convert data types for better usability.
+
+		Format date columns to standard formats.
+
+		Rename columns for better business understanding.
+
+		Handle missing/null values (Fill N/A with "Unknown").
+
+		Extract and retain only relevant columns.
+
+		Apply basic transformations (splitting, concatenation, case formatting).
+
+
+	Silver Layer Tables (Cleaned Data)
+
+		Table Name
+		Address
+		Customer
+		CustomerAddress
+		Product
+		ProductCategory
+		ProductDescription
+		ProductModel
+		ProductModelProductDescription
+		SalesOrderDetail
+		SalesOrderHeader
+
+	Step 3: Gold Layer (Aggregated & Modeled Data - Star Schema)
+
+		Purpose: Create optimized fact & dimension tables for reporting and analytics.
+
+		Format: Delta Format (for efficient reads, aggregations & joins).
+
+	Key Activities:
+
+		Create Fact & Dimension Tables (Star Schema).
+
+		Join multiple silver-layer tables for denormalization.
+
+		Generate Surrogate Keys for dimension tables.
+
+		Optimize queries using partitioning & indexing.
+
+		Store results in Azure Synapse Analytics (gold_db).
+
+	Gold Layer Tables (Optimized Data for Analytics)
+
+
+		Table Name			Type			Source Tables
+		DimCustomer			Dimension		Customer, CustomerAddress, Address
+		DimProduct			Dimension		Product, ProductCategory, ProductModel
+		FactSales			Fact			SalesOrderHeader, SalesOrderDetail
+		FactSalesAggregation		Fact			Aggregated sales data
+
+3. Benefits of Medallion Architecture:
+
+		Benefit				Description
+		Data Quality			Ensures clean, structured, and deduplicated data in Silver & Gold Layers.
+		Scalability			Modular approach allows independent scaling of each layer.
+		Performance Optimization	Gold Layer data is pre-aggregated for fast queries in Synapse Analytics.
+		Data Lineage & Governance	Clear separation of raw, processed, and aggregated data helps auditability.
+		Better Business Insights	Power BI consumes optimized Gold Layer data, ensuring quick dashboard refreshes.
